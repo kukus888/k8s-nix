@@ -15,6 +15,7 @@ sudo sysctl --system
 sudo systemctl enable --now containerd
 sudo systemctl status containerd
 
+sudo mkdir -p /etc/containerd
 sudo containerd config default | sudo tee /etc/containerd/config.toml
 # Otevři /etc/containerd/config.toml a ujisti se, že v CRI runtime options je SystemdCgroup = true. Pokud tam není, najdi blok: [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options] a ulož tam SystemdCgroup = true
 sudo systemctl restart containerd

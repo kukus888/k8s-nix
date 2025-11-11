@@ -1,18 +1,20 @@
 { config, pkgs, ... }:
-
+let
+  hostName = "nixos-kuber";
+  kubeMasterIP = "10.1.1.2";
+  kubeMasterHostname = "api.kube";
+  kubeMasterAPIServerPort = 6443;
+in
 {
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
     ];
   
-  # Sysctl pro Kubernetes
-  boot.kernel.sysctl = {
-    "net.bridge.bridge-nf-call-iptables"  = 1;
-    "net.bridge.bridge-nf-call-ip6tables" = 1;
-    "net.ipv4.ip_forward"                 = 1;
-  };
   boot.kernelModules = [ "overlay" "br_netfilter" ];
+  boot.kernel.sysctl = {
+    "net.ipv6.conf.all.forwarding" = true;
+  };
 
   # Turn off swap (kubeadm requirement)
   swapDevices = [];
@@ -21,7 +23,7 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  networking.hostName = "nixos-kuber"; # Define your hostname.
+  networking.hostName = "${hostName}";
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
 
   # Configure network proxy if necessary
@@ -30,6 +32,11 @@
 
   # Enable networking
   networking.networkmanager.enable = true;
+  networking.hosts = {
+    "127.0.0.1" = ["localhost" "${hostName}" "etcd.cluster.local" "etcd.local"];
+    "::1" = ["localhost" "ip6-localhost" "ip6-loopback"];
+    "${kubeMasterIP}" = ["${kubeMasterHostname}"];
+  };
 
   # Set your time zone.
   time.timeZone = "Europe/Prague";
@@ -117,8 +124,25 @@
     tmux
     git
     vim
+    file
   ];
-
+  virtualisation = {
+    containers.enable = true;
+    oci-containers.backend = "containerd";
+    containerd = {
+      enable = true;
+    };
+  };
+  services.kubernetes = {
+    roles = ["master" "node"];
+    masterAddress = kubeMasterHostname;
+    apiserverAddress = "https://${kubeMasterHostname}:${toString kubeMasterAPIServerPort}";
+    easyCerts = true;
+    apiserver = {
+      securePort = kubeMasterAPIServerPort;
+      advertiseAddress = kubeMasterIP;
+    };
+  };
   systemd.services.containerd.enable = true;
 
   # Some programs need SUID wrappers, can be configured further or are
