@@ -35,12 +35,10 @@
   environment.systemPackages = with pkgs; [
     containerd
     kubernetes
-    kubelet
-    kubectl
     curl
     openssl
-    # doporučené pro ladění eBPF/Cilium
-    bpftool
+    # for debugging eBPF/Cilium
+    bpftools
     # tools
     tmux
     git
