@@ -23,19 +23,18 @@
   services.xserver.desktopManager.plasma5.enable = true;
 
   # Sysctl pro Kubernetes
-  networking.sysctl = {
+  boot.kernel.sysctl = {
     "net.bridge.bridge-nf-call-iptables"  = 1;
     "net.bridge.bridge-nf-call-ip6tables" = 1;
     "net.ipv4.ip_forward"                 = 1;
   };
 
-  # Vypnout swap deklarativně (pokud máš swap partition nastavenu v configu, vymaž ji)
+  # Turn off swap (kubeadm requirement)
   swapDevices = [];
 
-  # Nainstalujeme potřebné balíčky (kubeadm/kubelet/kubectl/containerd) do systémového profilu
   environment.systemPackages = with pkgs; [
     containerd
-    kubeadm
+    kubernetes
     kubelet
     kubectl
     curl
