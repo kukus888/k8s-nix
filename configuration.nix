@@ -1,7 +1,7 @@
 { config, pkgs, ... }:
 let
   hostName = "nixos-kuber";
-  kubeMasterIP = "10.1.1.2";
+  kubeMasterIP = "10.2.0.0";
   kubeMasterHostname = "api.kube";
   kubeMasterAPIServerPort = 6443;
 in
@@ -34,8 +34,7 @@ in
   networking.networkmanager.enable = true;
   networking.hosts = {
     "127.0.0.1" = ["localhost" "${hostName}" "etcd.cluster.local" "etcd.local"];
-    "::1" = ["localhost" "ip6-localhost" "ip6-loopback"];
-    "${kubeMasterIP}" = ["${kubeMasterHostname}"];
+    "::1" = ["localhost" "ip6-localhost" "ip6-loopback" "${kubeMasterHostname}"];
   };
 
   # Set your time zone.
@@ -112,10 +111,12 @@ in
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
-    vim # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
+    vim # The Nano editor is also installed by default.
     wget
     containerd
     kubernetes
+    kubernetes-helm
+    cilium-cli
     curl
     openssl
     # for debugging eBPF/Cilium
@@ -125,6 +126,8 @@ in
     git
     vim
     file
+    bind # nslookup
+    jq
   ];
   virtualisation = {
     containers.enable = true;
@@ -141,10 +144,18 @@ in
     apiserver = {
       securePort = kubeMasterAPIServerPort;
       advertiseAddress = kubeMasterIP;
+      serviceClusterIpRange = "10.1.0.0/24";
+      allowPrivileged = true;
     };
   };
+  services.rke2 = {
+    enable = true;
+    serverAddr = "https://${kubeMasterHostname}:${toString kubeMasterAPIServerPort}";
+    role = "server";
+    cni = "cilium";
+  };
   systemd.services.containerd.enable = true;
-
+  
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
   # programs.mtr.enable = true;
